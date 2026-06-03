@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 import { Search, Filter, MapPin, Calendar, DollarSign, Heart, AlertTriangle } from 'lucide-react';
 
 interface Item {
@@ -25,6 +26,7 @@ interface Item {
 }
 
 export const SearchItems: React.FC = () => {
+  const navigate = useNavigate();
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -287,8 +289,8 @@ export const SearchItems: React.FC = () => {
                   </div>
                   
                   <div className="pt-2">
-                    <Button className="w-full" variant="outline">
-                      Contact Owner
+                    <Button className="w-full" variant="outline" onClick={() => navigate(`/item/${item.id}`)}>
+                      View Details
                     </Button>
                   </div>
                 </CardContent>

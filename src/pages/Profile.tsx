@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Phone, Edit3, Save, X, Heart, AlertTriangle, MessageSquare } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Edit3, Save, X, Heart, AlertTriangle, MessageSquare, Trash2, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Profile {
@@ -38,6 +38,9 @@ export const Profile: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [offers, setOffers] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -89,6 +92,23 @@ export const Profile: React.FC = () => {
           phone: profileData.phone || '',
         });
       }
+      // Fetch reviews for this user
+      const { data: reviewsData } = await supabase
+        .from('reviews')
+        .select('*, reviewer:profiles!reviews_reviewer_id_fkey(full_name, avatar_url)')
+        .eq('reviewee_id', user.id)
+        .order('created_at', { ascending: false });
+
+      setReviews(reviewsData || []);
+
+      // Fetch my offers/claims
+      const { data: offersData } = await supabase
+        .from('claims')
+        .select('*, items(title, type, status)')
+        .eq('claimant_id', user.id)
+        .order('created_at', { ascending: false });
+
+      setOffers(offersData || []);
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast({
@@ -142,6 +162,34 @@ export const Profile: React.FC = () => {
   const getInitials = (name: string | null) => {
     if (!name) return '?';
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  const handleDeleteItem = async (itemId: string) => {
+    if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) return;
+
+    setDeletingId(itemId);
+    try {
+      const { error } = await supabase
+        .from('items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      setUserItems(prev => prev.filter(item => item.id !== itemId));
+      toast({
+        title: "Success",
+        description: "Item deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete item",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -267,9 +315,10 @@ export const Profile: React.FC = () => {
 
           {/* Profile Content */}
           <Tabs defaultValue="items" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="items">My Items ({userItems.length})</TabsTrigger>
-              <TabsTrigger value="activity">Activity</TabsTrigger>
+              <TabsTrigger value="offers">My Offers ({offers.length})</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews ({reviews.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="items">
@@ -326,6 +375,29 @@ export const Profile: React.FC = () => {
                             <span className="text-xs text-muted-foreground">
                               {formatDate(item.created_at)}
                             </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/edit-item/${item.id}`);
+                              }}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteItem(item.id);
+                              }}
+                              disabled={deletingId === item.id}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -335,21 +407,91 @@ export const Profile: React.FC = () => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="activity">
+            <TabsContent value="offers">
               <Card className="shadow-gentle">
                 <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
+                  <CardTitle>My Offers & Claims</CardTitle>
                   <CardDescription>
-                    Your interactions with the community
+                    Your claims and offers on items
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8">
-                    <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      Activity tracking coming soon!
-                    </p>
-                  </div>
+                  {offers.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">
+                        You haven't made any offers yet
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {offers.map((offer: any) => (
+                        <div key={offer.id} className="p-4 rounded-lg border bg-card">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium">{offer.items?.title || 'Unknown Item'}</h4>
+                            <Badge variant={
+                              offer.status === 'approved' ? 'default' :
+                              offer.status === 'rejected' ? 'destructive' : 'outline'
+                            }>
+                              {offer.status}
+                            </Badge>
+                          </div>
+                          {offer.message && (
+                            <p className="text-sm text-muted-foreground">{offer.message}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {formatDate(offer.created_at)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="reviews">
+              <Card className="shadow-gentle">
+                <CardHeader>
+                  <CardTitle>Reviews & Ratings</CardTitle>
+                  <CardDescription>
+                    Feedback from the community
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {reviews.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Star className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">
+                        No reviews yet
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {reviews.map((review: any) => (
+                        <div key={review.id} className="p-4 rounded-lg border bg-card">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex text-yellow-500">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-4 w-4 ${i < review.rating ? 'fill-current' : ''}`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-sm text-muted-foreground">
+                              by {review.reviewer?.full_name || 'Anonymous'}
+                            </span>
+                          </div>
+                          {review.comment && (
+                            <p className="text-sm text-muted-foreground">{review.comment}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {formatDate(review.created_at)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

@@ -31,9 +31,10 @@ type ItemFormData = z.infer<typeof itemSchema>;
 interface PostItemFormProps {
   type: 'lost' | 'found';
   onSuccess?: () => void;
+  editItem?: any;
 }
 
-export const PostItemForm: React.FC<PostItemFormProps> = ({ type, onSuccess }) => {
+export const PostItemForm: React.FC<PostItemFormProps> = ({ type, onSuccess, editItem }) => {
   const [categories, setCategories] = useState<any[]>([]);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -42,10 +43,17 @@ export const PostItemForm: React.FC<PostItemFormProps> = ({ type, onSuccess }) =
   const form = useForm<ItemFormData>({
     resolver: zodResolver(itemSchema),
     defaultValues: {
-      title: '',
-      description: '',
-      location: '',
-      tags: '',
+      title: editItem?.title || '',
+      description: editItem?.description || '',
+      location: editItem?.location || '',
+      category_id: editItem?.category_id || '',
+      date_lost_found: editItem?.date_lost_found || '',
+      contact_email: editItem?.contact_email || '',
+      contact_phone: editItem?.contact_phone || '',
+      reward_offered: editItem?.reward_offered?.toString() || '',
+      security_question: editItem?.security_question || '',
+      security_answer: editItem?.security_answer || '',
+      tags: editItem?.tags?.join(', ') || '',
     },
   });
 
@@ -106,7 +114,12 @@ export const PostItemForm: React.FC<PostItemFormProps> = ({ type, onSuccess }) =
         return;
       }
 
-      const imageUrls = await uploadImages();
+      let imageUrls: string[] = [];
+      if (imageFiles.length > 0) {
+        imageUrls = await uploadImages();
+      } else if (editItem?.image_urls) {
+        imageUrls = editItem.image_urls;
+      }
       
       const itemData = {
         title: data.title,
@@ -125,15 +138,27 @@ export const PostItemForm: React.FC<PostItemFormProps> = ({ type, onSuccess }) =
         tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : null,
       };
 
-      const { error } = await supabase
-        .from('items')
-        .insert([itemData]);
+      let error;
+      if (editItem) {
+        const { error: updateError } = await supabase
+          .from('items')
+          .update(itemData)
+          .eq('id', editItem.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('items')
+          .insert([itemData]);
+        error = insertError;
+      }
 
       if (error) throw error;
 
       toast({
-        title: `${type === 'lost' ? 'Lost' : 'Found'} Item Posted! 🎉`,
-        description: `Your ${type} item has been posted successfully. We'll help you ${type === 'lost' ? 'find it' : 'reunite it with its owner'}!`,
+        title: editItem ? "Item Updated! ✅" : `${type === 'lost' ? 'Lost' : 'Found'} Item Posted! 🎉`,
+        description: editItem
+          ? "Your item has been updated successfully."
+          : `Your ${type} item has been posted successfully.`,
       });
 
       form.reset();
@@ -159,17 +184,17 @@ export const PostItemForm: React.FC<PostItemFormProps> = ({ type, onSuccess }) =
   return (
     <Card className="shadow-gentle">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          {type === 'lost' ? (
-            <AlertTriangle className="h-5 w-5 text-warning" />
-          ) : (
-            <Heart className="h-5 w-5 text-secondary" />
-          )}
-          Post {type === 'lost' ? 'Lost' : 'Found'} Item
-        </CardTitle>
-        <CardDescription>
-          Help our community by sharing details about this {type} item
-        </CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            {type === 'lost' ? (
+              <AlertTriangle className="h-5 w-5 text-warning" />
+            ) : (
+              <Heart className="h-5 w-5 text-secondary" />
+            )}
+            {editItem ? 'Edit' : 'Post'} {type === 'lost' ? 'Lost' : 'Found'} Item
+          </CardTitle>
+          <CardDescription>
+            {editItem ? 'Update the details of your' : 'Help our community by sharing details about this'} {type} item
+          </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -388,7 +413,7 @@ export const PostItemForm: React.FC<PostItemFormProps> = ({ type, onSuccess }) =
               className="w-full"
               variant={type === 'lost' ? 'warning' : 'secondary'}
             >
-              {uploading ? 'Posting...' : `Post ${type === 'lost' ? 'Lost' : 'Found'} Item`}
+              {uploading ? 'Saving...' : editItem ? 'Update Item' : `Post ${type === 'lost' ? 'Lost' : 'Found'} Item`}
             </Button>
           </form>
         </Form>

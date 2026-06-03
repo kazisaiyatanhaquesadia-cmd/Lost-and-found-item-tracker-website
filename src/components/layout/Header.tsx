@@ -3,24 +3,43 @@ import { Button } from '@/components/ui/button';
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from '@/components/ui/navigation-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Search, Users, Plus, AlertTriangle, LogOut, Menu } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { Heart, Search, Users, Plus, AlertTriangle, LogOut, Menu, X, MessageSquare, Shield } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Get current user
     const getCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        setIsAdmin(profile?.is_admin || false);
+      }
     };
 
     getCurrentUser();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('user_id', session.user.id)
+          .maybeSingle()
+          .then(({ data }) => setIsAdmin(data?.is_admin || false));
+      } else {
+        setIsAdmin(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -143,8 +162,30 @@ export const Header: React.FC = () => {
 
           {/* Right side actions */}
           <div className="flex items-center gap-2">
+            <ThemeToggle />
+
             {user ? (
               <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/messages')}
+                  className="flex items-center gap-2"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span className="hidden lg:inline">Messages</span>
+                </Button>
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/admin')}
+                    className="flex items-center gap-2"
+                  >
+                    <Shield className="h-4 w-4" />
+                    <span className="hidden lg:inline">Admin</span>
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -177,13 +218,76 @@ export const Header: React.FC = () => {
               variant="outline"
               size="sm"
               className="md:hidden"
-              onClick={() => {/* Add mobile menu toggle logic */}}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              <Menu className="h-4 w-4" />
+              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-border bg-background animate-slide-up">
+          <div className="container mx-auto px-4 py-4 space-y-2">
+            <button
+              className="flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left w-full"
+              onClick={() => { navigate('/search'); setMobileMenuOpen(false); }}
+            >
+              <Search className="h-4 w-4 text-primary" />
+              Browse Items
+            </button>
+            <button
+              className="flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left w-full"
+              onClick={() => { navigate('/post-lost'); setMobileMenuOpen(false); }}
+            >
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              Report Lost Item
+            </button>
+            <button
+              className="flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left w-full"
+              onClick={() => { navigate('/post-found'); setMobileMenuOpen(false); }}
+            >
+              <Heart className="h-4 w-4 text-secondary" />
+              Post Found Item
+            </button>
+            <button
+              className="flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left w-full"
+              onClick={() => { navigate('/community'); setMobileMenuOpen(false); }}
+            >
+              <Users className="h-4 w-4" />
+              Community
+            </button>
+            {user && (
+              <>
+                <button
+                  className="flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left w-full"
+                  onClick={() => { navigate('/messages'); setMobileMenuOpen(false); }}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Messages
+                </button>
+                <button
+                  className="flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left w-full"
+                  onClick={() => { navigate('/my-offers'); setMobileMenuOpen(false); }}
+                >
+                  <Heart className="h-4 w-4" />
+                  My Offers
+                </button>
+                {isAdmin && (
+                  <button
+                    className="flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left w-full"
+                    onClick={() => { navigate('/admin'); setMobileMenuOpen(false); }}
+                  >
+                    <Shield className="h-4 w-4" />
+                    Admin Dashboard
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 };

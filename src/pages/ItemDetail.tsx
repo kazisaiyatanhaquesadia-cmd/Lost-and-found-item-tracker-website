@@ -7,7 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ChevronUp, MessageCircle, AlertTriangle, MapPin, Clock, Send, User, ArrowLeft } from 'lucide-react';
+import { MakeOfferDialog } from '@/components/items/offers/MakeOfferDialog';
+import { ReviewForm } from '@/components/reviews/ReviewForm';
+import { ChevronUp, MessageCircle, AlertTriangle, MapPin, Clock, Send, User, ArrowLeft, MessageSquare, Flag } from 'lucide-react';
 
 interface ItemPost {
   id: string;
@@ -45,6 +47,7 @@ export default function ItemDetail() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentProfile, setCurrentProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -59,6 +62,14 @@ export default function ItemDetail() {
   const getCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUser(user);
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      setCurrentProfile(profile);
+    }
   };
 
   const fetchPost = async () => {
@@ -408,6 +419,71 @@ export default function ItemDetail() {
                 {post.comment_count}
               </div>
             </div>
+
+            {/* Action Buttons */}
+            {currentUser && currentUser.id !== post.user_id && (
+              <div className="flex gap-2 pt-2">
+                <MakeOfferDialog
+                  itemId={post.id}
+                  itemOwnerId={post.user_id}
+                  hasSecurityQuestion={false}
+                  onSuccess={() => {
+                    toast({ title: "Offer Sent!", description: "The owner will review your claim" });
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  className="flex-1 flex items-center gap-2"
+                  onClick={() => navigate(`/messages`)}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Message Owner
+                </Button>
+              </div>
+            )}
+
+            {/* Review Section */}
+            {currentUser && currentUser.id !== post.user_id && (
+              <div className="pt-4 border-t">
+                <h4 className="font-medium mb-2">Leave a Review</h4>
+                <ReviewForm
+                  revieweeId={post.user_id}
+                  itemId={post.id}
+                />
+              </div>
+            )}
+
+            {/* Report Button */}
+            {currentUser && currentUser.id !== post.user_id && (
+              <div className="pt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={async () => {
+                    const reason = prompt('Reason for reporting this item:');
+                    if (!reason) return;
+                    try {
+                      const { error } = await supabase
+                        .from('complaints')
+                        .insert({
+                          reporter_id: currentUser.id,
+                          reported_user_id: post.user_id,
+                          item_id: post.id,
+                          reason,
+                        });
+                      if (error) throw error;
+                      toast({ title: "Report Submitted", description: "Admin will review this report" });
+                    } catch (error: any) {
+                      toast({ title: "Error", description: error.message, variant: "destructive" });
+                    }
+                  }}
+                >
+                  <Flag className="h-4 w-4 mr-1" />
+                  Report
+                </Button>
+              </div>
+            )}
 
             <div className="space-y-4 pt-4 border-t">
               {currentUser && (
