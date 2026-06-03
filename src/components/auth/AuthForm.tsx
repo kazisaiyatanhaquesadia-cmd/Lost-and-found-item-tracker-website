@@ -57,12 +57,31 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onAuthSuccess }) => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+
+      // Check if user is banned
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_banned')
+          .eq('user_id', data.user.id)
+          .maybeSingle();
+
+        if (profile?.is_banned) {
+          await supabase.auth.signOut();
+          toast({
+            title: "Account Blocked",
+            description: "Your account has been blocked. Please contact support.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
 
       toast({
         title: "Welcome back! 🏠",
