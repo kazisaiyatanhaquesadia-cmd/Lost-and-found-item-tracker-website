@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Lost & Found Tracker Design System - Warm, friendly, and trustworthy 
+All colors MUST be HSL. Using warm blues for trust, gentle oranges for hope, mint greens for success.
+*/
+
+@layer base {
+  :root {
+    /* Charming warm gradient backgrounds */
+    --background: 42 25% 98%;
+    --foreground: 215 30% 12%;
+
+    /* Card system with magical warmth */
+    --card: 0 0% 100%;
+    --card-foreground: 215 30% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 30% 12%;
+
+    /* Primary: Enchanting coral-blue */
+    --primary: 200 95% 62%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 200 95% 68%;
+    --primary-glow: 200 95% 85%;
+
+    /* Secondary: Magical sunset orange */
+    --secondary: 25 95% 72%;
+    --secondary-foreground: 215 30% 12%;
+    --secondary-hover: 25 95% 78%;
+
+    /* Success: Enchanting emerald */
+    --success: 145 85% 65%;
+    --success-foreground: 0 0% 100%;
+    --success-hover: 145 85% 70%;
+
+    /* Warning: Golden sunrise */
+    --warning: 35 100% 65%;
+    --warning-foreground: 215 30% 12%;
+
+    /* Muted: Dreamy background tones */
+    --muted: 42 20% 96%;
+    --muted-foreground: 215 20% 40%;
+
+    /* Accent: Whimsical lavender */
+    --accent: 260 60% 92%;
+    --accent-foreground: 260 85% 55%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 42 20% 85%;
+    --input: 42 20% 96%;
+    --ring: 200 95% 62%;
+
+    --radius: 0.875rem;
+
+    /* Magical gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(200 95% 62%), hsl(260 85% 70%));
+    --gradient-hope: linear-gradient(135deg, hsl(25 95% 72%), hsl(35 100% 75%));
+    --gradient-success: linear-gradient(135deg, hsl(145 85% 65%), hsl(160 80% 75%));
+    --gradient-warm: linear-gradient(135deg, hsl(42 25% 98%), hsl(260 60% 95%));
+    --gradient-hero: linear-gradient(135deg, hsl(200 95% 62%) 0%, hsl(25 95% 72%) 50%, hsl(260 85% 70%) 100%);
+    --gradient-magic: linear-gradient(45deg, hsl(200 95% 62%), hsl(25 95% 72%), hsl(145 85% 65%), hsl(260 85% 70%));
+
+    /* Enchanting shadows */
+    --shadow-gentle: 0 4px 20px hsl(200 50% 50% / 0.08);
+    --shadow-warm: 0 8px 40px hsl(25 70% 60% / 0.15);
+    --shadow-glow: 0 0 50px hsl(200 95% 80% / 0.4);
+    --shadow-magic: 0 10px 60px hsl(260 60% 70% / 0.2);
+
+    /* Smooth magical animations */
+    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition-magic: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
